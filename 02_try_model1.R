@@ -27,7 +27,8 @@ qualityTrain = subset(train, split==TRUE)
 qualityTest = subset(train, split==FALSE)
 
 ##### First test it on a training data set
-outcomeLogistic = glm(outcome ~ Var1 + Var2 + Var3 +Var4 +Var5 +Category1 + Category2 + Category3 ,
+outcomeLogistic = glm(outcome ~ Var1 + Var2 + Var3 +Var4 +Var5 +Category1 + Category2 + Category3 
+                      +duration +prev_visit+reg_duration  +first_duration + prev_type ,
                       data= qualityTrain,
                       family= binomial)
 
@@ -54,11 +55,12 @@ ROCRperf = performance(ROCRpred, "tpr", "fpr")
 plot(ROCRperf, colorize = TRUE, print.cutoffs.at = seq(0,1,0.1), text.adj = c(-0.2, 1.7))
 auc = as.numeric(performance(ROCRpred, "auc")@y.values)
 auc
-# 0.7848746
+# 0.794
 
 ##### Run the same model for all train data
 
-outcomeLog2 = glm(outcome ~ Var1 + Var2 + Var3 +Var4 +Var5 +Category1 + Category2 + Category3 ,
+outcomeLog2 = glm(outcome ~ Var2 + Var5 +Category1 + Category2 + Category3 
+                  +duration +prev_visit+reg_duration  +first_duration + prev_type ,
                       data= train,
                       family= binomial)
 summary(outcomeLog2)
@@ -66,7 +68,7 @@ predictTest2 = predict(outcomeLog2, type="response",newdata = test)
 
 mysubmission = data.frame(Patient_ID = test$Patient_ID,	Health_Camp_ID = test$Health_Camp_ID,	Outcome = predictTest2)
 
-write.csv(mysubmission, "output/sub_log1.csv",row.names = FALSE)
+write.csv(mysubmission, "output/sub_log5.csv",row.names = FALSE)
 
 #Leaderboard auc
-0.774291
+0.7848

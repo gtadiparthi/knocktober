@@ -49,6 +49,7 @@ str(profile)
 
 first_camp <- read.csv("data/Train/First_Health_Camp_Attended.csv",colClasses=c("character", "character", "numeric", "numeric"))
 names(first_camp)[names(first_camp)=="Health_Score"] <- "outcome"
+
 first_camp$X <- NULL
 first_camp$Donation <- NULL
 str(first_camp)
@@ -57,6 +58,7 @@ str(first_camp)
 
 second_camp <- read.csv("data/Train/Second_Health_Camp_Attended.csv",colClasses=c("character", "character", "numeric"))
 names(second_camp)[names(second_camp)=="Health.Score"] <- "outcome"
+
 str(second_camp)
 
 
@@ -101,7 +103,7 @@ str(test)
 # Test and train are the same data set.
 #Now, it is easy to apply transformations to both test and train
 all <- rbind(train1, test)
-
+all$reg_date <- as.Date(all$Registration_Date,format='%d-%b-%y')
 #### Calculate histogram
 xout <- as.data.frame(table(all$Patient_ID))
 hist(xout$Freq)
@@ -111,11 +113,13 @@ all1 <- merge(all, health_camps,by="Health_Camp_ID")
 all1[which(all1$Registration_Date ==""),]$reg_date = all1[which(all1$Registration_Date ==""),]$start
 
 all1 <- all1[order(all1$Patient_ID,all1$reg_date),]
-all1$reg_date <- as.Date(all1$Registration_Date,format='%d-%b-%y')
+
 
 all1$prev_visit<-ave(all1$Patient_ID==all1$Patient_ID, all1$Patient_ID, FUN=cumsum)
 all1$prev_visit <- all1$prev_visit -1
-
+all1$prev_type <- c(0,as.numeric(all1$Category1[seq(1,length(all1$Category1)-1)]))
+all1[which(all1$prev_visit == 0),]$prev_type = 0
+all1$prev_type <- as.factor(all1$prev_type)
 all1$reg_duration <- as.numeric(all1$reg_date - all1$start)
 all1$reg_wkday <- as.factor(weekdays(all1$reg_date))
 hist(all1$reg_duration)
@@ -158,8 +162,6 @@ imputed = complete(mice(simple, me = c("", "","","","","","", "",
 
 
 
-#third_camp$Number_of_stall_visited<- NULL
-#third_camp$Last_Stall_Visited_Number<- NULL
 
 save(all_data,file="data/all_data.RData")
 

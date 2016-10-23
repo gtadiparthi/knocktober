@@ -19,8 +19,10 @@ test = subset(all_data, is.na(outcome))
 library(randomForest)
 set.seed(188)
 
-outcomeRF1 = randomForest(as.factor(outcome) ~ Var1 + Var2 + Var3 +Var4 +Var5 +Category1 + Category2 + Category3 ,
+outcomeRF1 = randomForest(as.factor(outcome) ~  Var2 + Var5 +Category1 + Category2 + Category3 
+                          +duration +prev_visit+reg_duration  +first_duration +prev_type ,
                       data= train,
+                      ntree = 1500,
                       do.trace = 100)
 summary(outcomeRF1)
 
@@ -34,7 +36,7 @@ ROCRperf = performance(ROCRpred, "tpr", "fpr")
 plot(ROCRperf, colorize = TRUE, print.cutoffs.at = seq(0,1,0.1), text.adj = c(-0.2, 1.7))
 auc = as.numeric(performance(ROCRpred, "auc")@y.values)
 auc
-###0.77 for train auc
+###0.8395 for train auc
 
 vu = varUsed(outcomeRF1, count=TRUE)
 vusorted = sort(vu, decreasing = FALSE, index.return = TRUE)
@@ -47,7 +49,7 @@ predictTest2 = predict(outcomeRF1, type="prob",newdata = test)
 predictTest2[predictTest2 <0]=0
 mysubmission = data.frame(Patient_ID = test$Patient_ID,	Health_Camp_ID = test$Health_Camp_ID,	Outcome = predictTest2[,2])
 
-write.csv(mysubmission, "output/sub_RF1.csv",row.names = FALSE)
+write.csv(mysubmission, "output/sub_RF4.csv",row.names = FALSE)
 
 #Leaderboard auc
-#0.78
+#0.77
