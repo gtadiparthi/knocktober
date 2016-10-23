@@ -13,9 +13,11 @@ health_camps <- read.csv("data/Train/Health_Camp_Detail.csv",
                          colClasses=c("character", "character","character","factor","factor","factor"))
 health_camps$start <- as.Date(health_camps$Camp_Start_Date,format='%d-%b-%y')
 health_camps$end <- as.Date(health_camps$Camp_End_Date,format='%d-%b-%y')
-health_camps$duration <- health_camps$end - health_camps$start
+health_camps$duration <- as.numeric(health_camps$end - health_camps$start)
+health_camps$start_wkday <- as.factor(weekdays(health_camps$start))
 health_camps$Camp_Start_Date <- NULL
 health_camps$Camp_End_Date <- NULL
+health_camps$end <- NULL
 str(health_camps)
 
 
@@ -23,17 +25,24 @@ str(health_camps)
 #Don't read profile data using colclasses as you have to do a lot of changes after merging to the train and test
 #Especially since the data is sparce, we have to have  afactor NA for records that are missing
 
-profile <- read.csv("data/Train/Patient_Profile.csv",colClasses=c("character", "factor", "factor", "factor","factor",
-                                                                  "factor","character","character",
-                                                                  "character","factor","factor"))
+profile <- read.csv("data/Train/Patient_Profile.csv",stringsAsFactors = FALSE)
+str(profile)
+table(profile$Income)
 profile[which(profile$Education_Score=="None"),]$Education_Score <- "0"
-profile[which(profile$Age=="None"),]$Age <- "0"
-table(profile$Age)
-table(profile$Education_Score)
-profile$Education_Score <- as.numeric(profile$Education_Score)
-profile$Age <- as.numeric(profile$Age)
-profile[which(profile$Education_Score==0),]$Education_Score <- NA
-profile[which(profile$Age==0),]$Age <- NA
+ profile[which(profile$Age=="None"),]$Age <- "0"
+# table(profile$Age)
+# table(profile$Education_Score)
+ profile$Education_Score <- as.numeric(profile$Education_Score)
+ profile$Age <- as.numeric(profile$Age)
+ profile[which(profile$Education_Score==0),]$Education_Score <- NA
+ profile[which(profile$Age==0),]$Age <- NA
+ profile$Online_Follower <- as.factor(profile$Online_Follower)
+ profile$LinkedIn_Shared <- as.factor(profile$LinkedIn_Shared)
+ profile$Twitter_Shared <- as.factor(profile$Twitter_Shared)
+ profile$Facebook_Shared <- as.factor(profile$Facebook_Shared)
+ profile$City_Type <- as.factor(profile$City_Type)
+ profile$Income <- as.factor(profile$Income)
+ profile$Employer_Category<- as.factor(profile$Employer_Category)
 str(profile)
 
 #### Read first health camp
@@ -93,14 +102,48 @@ str(test)
 #Now, it is easy to apply transformations to both test and train
 all <- rbind(train1, test)
 all$reg_date <- as.Date(all$Registration_Date,format='%d-%b-%y')
-#all$Registration_Date <- NULL
+
 all1 <- merge(all, health_camps,by="Health_Camp_ID")
+all1[which(all1$Registration_Date ==""),]$reg_date = all1[which(all1$Registration_Date ==""),]$start
 all1$reg_duration <- as.numeric(all1$reg_date - all1$start)
+all1$reg_wkday <- as.factor(weekdays(all1$reg_date))
+hist(all1$reg_duration)
+all1$start <- NULL
+all1$Registration_Date <- NULL
 str(all1)
+summary(all1)
 #####
 
 ##### Join profile
 all_data = merge (all1, profile, by="Patient_ID",all.x = TRUE)
+all_data$first_date <- as.Date(all_data$First_Interaction,format='%d-%b-%y')
+all_data[which(all_data$First_Interaction ==""),]$first_date = all_data[which(all_data$First_Interaction ==""),]$reg_date
+all_data$first_duration <- as.numeric(all_data$reg_date - all_data$first_date)
+hist(all_data$first_duration)
+all_data$reg_date <- NULL
+all_data$first_date <- NULL
+all_data$First_Interaction <- NULL
+str(all_data)
+names(all_data)
+#Imputation using mice
+library(mice)
+simple = all_data[c("Var1", "Var2","Var3","Var4","Var5","Category1","Category2", "Category3",
+                     "duration","start_wkday","reg_duration","reg_wkday",
+                    "Online_Follower",   "LinkedIn_Shared",   "Twitter_Shared", "Facebook_Shared",
+                    "Income" , "Education_Score",  "Age" ,  "City_Type" ,   "Employer_Category",
+                    "first_duration"  )]
+summary(simple)
+set.seed(144)
+imputed = complete(mice(simple, me = c("", "","","","","","", "",
+                                       "","","","",
+                                       "logreg",   "logreg",   "logreg", "logreg",
+                                       "polyreg" , "pmm",  "pmm" ,  "polyreg" ,   "polyreg",
+                                       "" )))
+
+
+
+#third_camp$Number_of_stall_visited<- NULL
+#third_camp$Last_Stall_Visited_Number<- NULL
 
 save(all_data,file="data/all_data.RData")
 
