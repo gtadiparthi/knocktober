@@ -101,10 +101,21 @@ str(test)
 # Test and train are the same data set.
 #Now, it is easy to apply transformations to both test and train
 all <- rbind(train1, test)
-all$reg_date <- as.Date(all$Registration_Date,format='%d-%b-%y')
+
+#### Calculate histogram
+xout <- as.data.frame(table(all$Patient_ID))
+hist(xout$Freq)
+### End of hist
 
 all1 <- merge(all, health_camps,by="Health_Camp_ID")
 all1[which(all1$Registration_Date ==""),]$reg_date = all1[which(all1$Registration_Date ==""),]$start
+
+all1 <- all1[order(all1$Patient_ID,all1$reg_date),]
+all1$reg_date <- as.Date(all1$Registration_Date,format='%d-%b-%y')
+
+all1$prev_visit<-ave(all1$Patient_ID==all1$Patient_ID, all1$Patient_ID, FUN=cumsum)
+all1$prev_visit <- all1$prev_visit -1
+
 all1$reg_duration <- as.numeric(all1$reg_date - all1$start)
 all1$reg_wkday <- as.factor(weekdays(all1$reg_date))
 hist(all1$reg_duration)
@@ -124,6 +135,11 @@ all_data$reg_date <- NULL
 all_data$first_date <- NULL
 all_data$First_Interaction <- NULL
 str(all_data)
+levels(all_data$Income)
+levels(all_data$Employer_Category)[levels(all_data$Employer_Category)==""] <- NA
+summary(all_data)
+levels(all_data$City_Type)[levels(all_data$City_Type)==""] <- NA
+levels(all_data$Income)[levels(all_data$Income)=="None"] <- NA
 names(all_data)
 #Imputation using mice
 library(mice)
